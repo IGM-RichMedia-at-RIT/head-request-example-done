@@ -4,87 +4,79 @@
   <title>Our simple HTTP server</title>
   <link rel="stylesheet" type="text/css" href="/style.css">
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-  <script type="text/babel">
-    const handleResponse = (xhr, parseResponse) => {
+  <script>
+    //Handle response takes in the response object (from our fetch request), and 
+    //a boolean of if we should parse the response or not (since head requests have
+    //no actual response). It is marked as async because we will use await.
+    const handleResponse = async (response, parseResponse) => {
+      
+      //Grab the content section so that we can write to it
       const content = document.querySelector('#content');
 
-      switch(xhr.status) {
-        case 200: //if success
+      //Based on the status of the response, write something.
+      switch(response.status) {
+        case 200: 
           content.innerHTML = `<b>Success</b>`;
           break;
-        case 201: //if created
-          content.innerHTML = '<b>Create</b>';
+        case 201:
+          content.innerHTML = `<b>Created</b>`;
           break;
-        case 400: //if bad request
+        case 400: 
           content.innerHTML = `<b>Bad Request</b>`;
           break;
-        case 404: //if not found
+        case 404:
           content.innerHTML = `<b>Resource Not Found</b>`;
           break;
-        default: //any other status
+        default: 
           content.innerHTML = `Error code not implemented by client.`;
           break;
       }
-      
-      //if we are expecting a response body (not in a head request)
-      if(parseResponse) {
-        //parse the object and print it to the console
-        const obj = JSON.parse(xhr.response);
-        console.dir(obj);
-        
-        //to make things easy to see, also print the raw JSON to the screen
-        content.innerHTML += `<p>${xhr.response}</p>`;
-      } else { 
-        //if not parsing a response, just alert that meta data was recieved
-        content.innerHTML += '<p>Meta Data Recieved</p>';
-      }
 
+      //If we should parse a response (meaning we made a get request)
+      if(parseResponse) {
+        //Parse the response to json. This is an async function, so we will await it.
+        let obj = await response.json();
+        
+        //To display the data easily, we will just stringify it again and display it.
+        let jsonString = JSON.stringify(obj);
+        content.innerHTML += `<p>${jsonString}</p>`;
+      } else {
+        //If we don't have a response to parse, just say we recieved metadata
+        content.innerHTML += '<p>Meta Data Received</p>';
+      }
     };
 
-    //function to send request
-    const requestUpdate = (e, userForm) => {
-      //grab url field 
+    //function to send request. This is marked as async since we will use await.
+    const requestUpdate = async (userForm) => {
+      
+      //Grab the url and method from the html form below
       const url = userForm.querySelector('#urlField').value;
-      //grab method selected
       const method = userForm.querySelector('#methodSelect').value;
       
-      //create a new AJAX request (asynchronous)
-      const xhr = new XMLHttpRequest();
-      //setup connect using the selected method and url
-      xhr.open(method, url);
-      //set accept header in request to application/json
-      //The accept header is a comma separated list of
-      //accepted response types in order of preference
-      //from first to last. You only need to send one
-      //but you can send many, separated by commas.
-      xhr.setRequestHeader('Accept', 'application/json');
+      //Await our fetch response. Go to the URL, use the right method, and attach the headers.
+      let response = await fetch(url, {
+        method,
+        headers: {
+            'Accept': 'application/json'
+        },
+      });
 
-      //if get request or head request
-      if(method == 'get') {
-        //set onload to parse request and get json message
-        xhr.onload = () => handleResponse(xhr, true);
-      } else {
-        //set onload to check meta data and NOT message
-        //There are no body responses in a head request
-        xhr.onload = () => handleResponse(xhr, false);
-      }
-      
-      //send ajax request
-      xhr.send();
-      
-      //cancel browser's default action
-      e.preventDefault();
-      //return false to prevent page redirection from a form
-      return false;
+      //Once we have our response, send it into handle response. The second parameter is a boolean
+      //that says if we should parse the response or not. We will get a response to parse on get
+      //requests so we can do an inline boolean check, which will return a true or false to pass in.
+      handleResponse(response, method === 'get');
     };
 
     const init = () => {
       //grab form
       const userForm = document.querySelector('#userForm');
       
-      //function to handle our request
-      const getUsers = (e) => requestUpdate(e, userForm);
+      //function to handle our request. In this case, it also cancels the built in html form action
+      const getUsers = (e) => {
+        e.preventDefault();
+        requestUpdate(userForm);
+        return false;
+      }
       
       //add event listener
       userForm.addEventListener('submit', getUsers);
