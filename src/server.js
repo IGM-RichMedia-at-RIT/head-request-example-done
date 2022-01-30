@@ -22,7 +22,7 @@ const urlStruct = {
   },
   'HEAD': {
     '/getUsers': jsonHandler.getUsersMeta,
-    notFound: jsonHandler.getUsersMeta,
+    notFound: jsonHandler.notFoundMeta,
   },
 };
 
