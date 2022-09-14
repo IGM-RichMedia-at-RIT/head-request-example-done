@@ -32,6 +32,15 @@ const onRequest = (request, response) => {
   //first we have to parse information from the url
   const parsedUrl = url.parse(request.url);
   
+  //next we need to ensure that we can handle the request
+  //method that they are making the request with. This server
+  //is only built to handle GET and HEAD requests, so we want
+  //to send back a 404 if they make anything else. We can use
+  //the HEAD version of notFound to send just a 404 status code.
+  if(!urlStruct[request.method]) {
+    return urlStruct['HEAD'].notFound(request, response);
+  }
+  
   //now we check to see if we have something to handle the
   //request. This syntax may look verbose, but essentially
   //what we are doing is indexing into urlStruct by the method
