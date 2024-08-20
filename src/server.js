@@ -1,5 +1,4 @@
 const http = require('http'); // http module
-const url = require('url'); // url module
 const htmlHandler = require('./htmlResponses.js');
 const jsonHandler = require('./jsonResponses.js');
 
@@ -29,7 +28,8 @@ const urlStruct = {
 // function to handle requests
 const onRequest = (request, response) => {
   // first we have to parse information from the url
-  const parsedUrl = url.parse(request.url);
+  const protocol = request.connection.encrypted ? 'https' : 'http';
+  const parsedUrl = new URL(request.url, `${protocol}://${request.headers.host}`);
 
   // next we need to ensure that we can handle the request
   // method that they are making the request with. This server
