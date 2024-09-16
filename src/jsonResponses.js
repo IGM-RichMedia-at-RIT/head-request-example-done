@@ -7,29 +7,27 @@ const users = {};
 // function to respond with a json object
 // takes request, response, status code and object to send
 const respondJSON = (request, response, status, object) => {
-  // object for our headers
-  // Content-Type for json
+  const content = JSON.stringify(object);
+
+  // Headers contain our metadata. HEAD requests only get
+  // this information back, so that the user can see what
+  // a GET request to a given endpoint would return. Here
+  // they would see what format of data (JSON) and how big
+  // that data would be ('Content-Length')
   const headers = {
     'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(content, 'utf8'),
   };
 
   // send response with json object
   response.writeHead(status, headers);
-  response.write(JSON.stringify(object));
-  response.end();
-};
 
-// function to respond without json body
-// takes request, response and status code
-const respondJSONMeta = (request, response, status) => {
-  // object for our headers
-  // Content-Type for json
-  const headers = {
-    'Content-Type': 'application/json',
-  };
+  // HEAD requests don't get a body back, just the metadata.
+  // So if the user made one, we don't want to write the body.
+  if(request.method !== 'HEAD') {
+    response.write(content);
+  }
 
-  // send response without json object, just headers
-  response.writeHead(status, headers);
   response.end();
 };
 
@@ -44,11 +42,6 @@ const getUsers = (request, response) => {
   // return 200 with message
   return respondJSON(request, response, 200, responseJSON);
 };
-
-// get meta info about user object
-// should calculate a 200
-// return 200 without message, just the meta data
-const getUsersMeta = (request, response) => respondJSONMeta(request, response, 200);
 
 // function just to update our object
 const updateUser = (request, response) => {
@@ -78,17 +71,9 @@ const notFound = (request, response) => {
   respondJSON(request, response, 404, responseJSON);
 };
 
-// function for 404 not found without message
-const notFoundMeta = (request, response) => {
-  // return a 404 without an error message
-  respondJSONMeta(request, response, 404);
-};
-
 // set public modules
 module.exports = {
   getUsers,
-  getUsersMeta,
   updateUser,
   notFound,
-  notFoundMeta,
 };

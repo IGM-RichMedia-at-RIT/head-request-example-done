@@ -4,25 +4,20 @@ const jsonHandler = require('./jsonResponses.js');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
-// here we create a object to route our requests to the proper
-// handlers. the top level object is indexed by the request
-// method (get, head, etc). We can use request.method to return
-// the routing object for each type of method. Once we say
-// urlStruct[request.method], we recieve another object which
-// routes each individual url to a handler. We can index this
-// object in the same way we have used urlStruct before.
+// Here we are routing each request url to a different endpoint
+// function. For data endpoints, they will internally support
+// head requests. Note that we could alternatively route requests
+// based on if they have a GET or HEAD method. However, for head
+// requests, we generally want to calculate our usual GET response
+// for that request, but then just send back the metadata. So
+// we will just call the same endpoints and conditionally send
+// back the response body.
 const urlStruct = {
-  GET: {
-    '/': htmlHandler.getIndex,
-    '/style.css': htmlHandler.getCSS,
-    '/getUsers': jsonHandler.getUsers,
-    '/updateUser': jsonHandler.updateUser,
-    notFound: jsonHandler.notFound,
-  },
-  HEAD: {
-    '/getUsers': jsonHandler.getUsersMeta,
-    notFound: jsonHandler.notFoundMeta,
-  },
+  '/': htmlHandler.getIndex,
+  '/style.css': htmlHandler.getCSS, 
+  '/getUsers': jsonHandler.getUsers,
+  '/updateUser': jsonHandler.updateUser,
+  notFound: jsonHandler.notFound,
 };
 
 // function to handle requests
@@ -31,26 +26,12 @@ const onRequest = (request, response) => {
   const protocol = request.connection.encrypted ? 'https' : 'http';
   const parsedUrl = new URL(request.url, `${protocol}://${request.headers.host}`);
 
-  // next we need to ensure that we can handle the request
-  // method that they are making the request with. This server
-  // is only built to handle GET and HEAD requests, so we want
-  // to send back a 404 if they make anything else. We can use
-  // the HEAD version of notFound to send just a 404 status code.
-  if (!urlStruct[request.method]) {
-    return urlStruct.HEAD.notFound(request, response);
-  }
-
-  // now we check to see if we have something to handle the
-  // request. This syntax may look verbose, but essentially
-  // what we are doing is indexing into urlStruct by the method
-  // which returns another object. We then index into that object
-  // by the pathname to get the handler. Inside the if, we can
-  // use that same syntax to call the actual function.
-  if (urlStruct[request.method][parsedUrl.pathname]) {
-    return urlStruct[request.method][parsedUrl.pathname](request, response);
+  // Then we route based on the path that the user went to
+  if (urlStruct[parsedUrl.pathname]) {
+    return urlStruct[parsedUrl.pathname](request, response);
   }
   
-  return urlStruct[request.method].notFound(request, response);
+  return urlStruct.notFound(request, response);
 };
 
 // start server
